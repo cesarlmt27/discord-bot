@@ -84,20 +84,24 @@ class Server(commands.Cog):
     async def run(self, ctx):
         id = ctx.message.guild.id       #Store guild ID where the message was sent.
         if(id == int(guilds[1])):
-            global server
-            try:
-                if(server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
-                    await ctx.send("Server is already running")
-                else:   #If the server was stopped once, "server.returncode" has a value of "0".
-                    raise NameError
-            except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
-                server = subprocess.Popen('./start-minecraft-server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-                time.sleep(1)
-                if(server.poll() == None):
-                    await bot.change_presence(activity=discord.Game(name="Minecraft BE"))
-                    await ctx.send("Server started")
-                else:
-                    await ctx.send("Server starting failed")
+            file_quantity = backup_status()
+            if(file_quantity == 'cached'):
+                global server
+                try:
+                    if(server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
+                        await ctx.send("Server is already running")
+                    else:   #If the server was stopped once, "server.returncode" has a value of "0".
+                        raise NameError
+                except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
+                    server = subprocess.Popen('./start-minecraft-server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                    time.sleep(1)
+                    if(server.poll() == None):
+                        await bot.change_presence(activity=discord.Game(name="Minecraft BE"))
+                        await ctx.send("Server started")
+                    else:
+                        await ctx.send("Server starting failed")
+            else:
+                await ctx.send(f"A backup is running, and the server can't start; wait some time to start the server.\nFile quantity = {file_quantity}")
         else:
             await ctx.send("This isn't allowed yet")
 
@@ -123,7 +127,11 @@ class Server(commands.Cog):
             else:
                 raise NameError
         except NameError:
-            await ctx.send("Server is closed")
+            file_quantity = backup_status()
+            if(file_quantity == 'cached'):
+                await ctx.send("Server is closed, and there isn't a backup running")
+            else:
+                await ctx.send(f"Server is closed, and there is a backup running.\nFile quantity = {file_quantity}")
 
     @commands.command(help="Make a backup of Minecraft server data")
     @commands.guild_only()
@@ -134,16 +142,23 @@ class Server(commands.Cog):
             else:
                 raise NameError
         except NameError:
-            output = subprocess.run('cd ~/.pcloud/Cache && ls | wc -l',  capture_output=True, shell=True, text=True)
-            file_quantity = int(output.stdout)  #Stored quantity of files inside the folder "Cache" of ".pcloud"
-            if(file_quantity == 1):
-                output2 = subprocess.run('cd ~/.pcloud/Cache && ls',  capture_output=True, shell=True, text=True)
-                file_name = output2.stdout.strip()      #Store file name inside the folder "Cache" and remove whitespace at the beginning and the end
-                if(file_name == 'cached'):
-                    subprocess.Popen('./backup_server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-                    await ctx.send("Making backup...")
+            file_quantity = backup_status()
+            if(file_quantity == 'cached'):
+                subprocess.Popen('./backup_server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                await ctx.send("Making backup...")
             else:
-                await ctx.send("Another backup is being processed; wait some time to start a backup")
+                await ctx.send(f"Another backup is running; wait some time to start a backup.\nFile quantity = {file_quantity}")
+
+
+def backup_status():
+    output = subprocess.run('cd ~/.pcloud/Cache && ls | wc -l',  capture_output=True, shell=True, text=True)
+    file_quantity = int(output.stdout)  #Stored quantity of files inside the folder "Cache" of ".pcloud"
+    if(file_quantity == 1):
+        output2 = subprocess.run('cd ~/.pcloud/Cache && ls',  capture_output=True, shell=True, text=True)
+        file_name = output2.stdout.strip()      #Store file name inside the folder "Cache" and remove whitespace at the beginning and the end
+        return file_name
+    else:
+        return file_quantity
 
 
 bot.add_cog(General(bot))
