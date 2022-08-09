@@ -93,10 +93,10 @@ class Server(commands.Cog):
                     else:   #If the server was stopped once, "server.returncode" has a value of "0".
                         raise NameError
                 except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
-                    server = subprocess.Popen('./start-minecraft-server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                    server = subprocess.Popen(os.environ['SERVER_STARTER_PATH'], stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
                     time.sleep(1)
                     if(server.poll() == None):
-                        await bot.change_presence(activity=discord.Game(name="Minecraft BE"))
+                        await bot.change_presence(activity=discord.Game(name=os.environ['PRESENCE']))
                         await ctx.send("Server started")
                     else:
                         await ctx.send("Server starting failed")
