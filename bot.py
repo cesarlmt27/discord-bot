@@ -5,12 +5,13 @@ import os
 import datetime
 import subprocess
 import time
+import asyncio
 
 load_dotenv()
 
 bot = commands.Bot(command_prefix='$', description='This bot is in beta.', help_command=commands.DefaultHelpCommand(no_category = 'Help'))
 
-guilds = [os.environ['TESTING_GUILD'], os.environ['ABI_GUILD']]
+guilds = [os.environ['TESTING_GUILD'], os.environ['ABI_GUILD'], os.environ['MS_GUILD']]
 
 me = int(os.environ['ME'])
 
@@ -33,12 +34,26 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_message(message):
     msg = message.content
-    if(msg.startswith("server:") and message.author.id == me):
-        msg = msg.replace("server:", "").strip()
+    if(msg.startswith("serverabi:") and message.author.id == me):
+        msg = msg.replace("serverabi:", "").strip()
         try:
             if(server.poll() == None):
                 server.stdin.write(msg + "\n")
                 server.stdin.flush()
+                if(msg == "stop"):
+                    await bot.change_presence(activity=None)
+                    await message.channel.send("Server stopped. Remember to make a backup")
+                await message.channel.send("Command received")
+            else:
+                raise NameError
+        except NameError:
+            await message.channel.send("Server is closed")
+    elif(msg.startswith("serverms:") and message.author.id == me):
+        msg = msg.replace("serverms:", "").strip()
+        try:
+            if(server2.poll() == None):
+                server2.stdin.write(msg + "\n")
+                server2.stdin.flush()
                 if(msg == "stop"):
                     await bot.change_presence(activity=None)
                     await message.channel.send("Server stopped. Remember to make a backup")
@@ -75,79 +90,116 @@ class General(commands.Cog):
         await ctx.send(embed=embed)
 
 
+
 class Server(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
 
     @commands.command(help="Run Minecraft server")
     @commands.guild_only()
     async def run(self, ctx):
         id = ctx.message.guild.id       #Store guild ID where the message was sent.
         if(id == int(guilds[1])):
-            file_quantity = backup_status()
-            if(file_quantity == 'cached'):
-                global server
-                try:
-                    if(server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
-                        await ctx.send("Server is already running")
-                    else:   #If the server was stopped once, "server.returncode" has a value of "0".
-                        raise NameError
-                except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
-                    server = subprocess.Popen(os.environ['SERVER_STARTER_PATH'], stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-                    time.sleep(1)
-                    if(server.poll() == None):
-                        await bot.change_presence(activity=discord.Game(name=os.environ['PRESENCE']))
-                        await ctx.send("Server started")
-                    else:
-                        await ctx.send("Server starting failed")
-            else:
-                await ctx.send(f"A backup is running, and the server can't start; wait some time to start the server.\nFile quantity = {file_quantity}")
+            asyncio.create_task(run_abi_minecraft_server(ctx))
+        elif(id == int(guilds[2])):
+            asyncio.create_task(run_ms_minecraft_server(ctx))
         else:
             await ctx.send("This isn't allowed yet")
+
 
     @commands.command(help="Stop Minecraft server")
     @commands.guild_only()
     async def stop(self, ctx):
-        try:
-            if(server.poll() == None):
-                server.communicate(input='stop', timeout=20)
-                await bot.change_presence(activity=None)
-                await ctx.send("Server stopped. Remember to make a backup")
-            else:
-                raise NameError
-        except NameError:
-            await ctx.send("Server isn't running")
+        id = ctx.message.guild.id       #Store guild ID where the message was sent.
+        if(id == int(guilds[1])):
+            try:
+                if(server.poll() == None):
+                    server.communicate(input='stop', timeout=20)
+                    await bot.change_presence(activity=None)
+                    await ctx.send("Server stopped. Remember to make a backup")
+                else:
+                    raise NameError
+            except NameError:
+                await ctx.send("Server isn't running")
+        elif(id == int(guilds[2])):
+            try:
+                if(server2.poll() == None):
+                    server2.communicate(input='stop', timeout=20)
+                    await bot.change_presence(activity=None)
+                    await ctx.send("Server stopped. Remember to make a backup")
+                else:
+                    raise NameError
+            except NameError:
+                await ctx.send("Server isn't running")
+        else:
+            await ctx.send("This isn't allowed yet")
+
 
     @commands.command(help="Check if the server is running or closed")
     @commands.guild_only()
     async def status(self, ctx):
-        try:
-            if(server.poll() == None):
-                await ctx.send("Server is running")
-            else:
-                raise NameError
-        except NameError:
-            file_quantity = backup_status()
-            if(file_quantity == 'cached'):
-                await ctx.send("Server is closed, and there isn't a backup running")
-            else:
-                await ctx.send(f"Server is closed, and there is a backup running.\nFile quantity = {file_quantity}")
+        id = ctx.message.guild.id       #Store guild ID where the message was sent.
+        if(id == int(guilds[1])):
+            try:
+                if(server.poll() == None):
+                    await ctx.send("Server is running")
+                else:
+                    raise NameError
+            except NameError:
+                file_quantity = backup_status()
+                if(file_quantity == 'cached'):
+                    await ctx.send("Server is closed, and there isn't a backup running")
+                else:
+                    await ctx.send(f"Server is closed, and there is a backup running.\nFile quantity = {file_quantity}")
+        elif(id == int(guilds[2])):
+            try:
+                if(server2.poll() == None):
+                    await ctx.send("Server is running")
+                else:
+                    raise NameError
+            except NameError:
+                file_quantity = backup_status()
+                if(file_quantity == 'cached'):
+                    await ctx.send("Server is closed, and there isn't a backup running")
+                else:
+                    await ctx.send(f"Server is closed, and there is a backup running.\nFile quantity = {file_quantity}")
+        else:
+            await ctx.send("This isn't allowed yet")
+
 
     @commands.command(help="Make a backup of Minecraft server data")
     @commands.guild_only()
     async def backup(self, ctx):
-        try:
-            if(server.poll() == None):
-                await ctx.send("Server is running, can't make a backup")
-            else:
-                raise NameError
-        except NameError:
-            file_quantity = backup_status()
-            if(file_quantity == 'cached'):
-                subprocess.Popen('./backup_server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-                await ctx.send("Making backup...")
-            else:
-                await ctx.send(f"Another backup is running; wait some time to start a backup.\nFile quantity = {file_quantity}")
+        id = ctx.message.guild.id       #Store guild ID where the message was sent.
+        if(id == int(guilds[1])):
+            try:
+                if(server.poll() == None):
+                    await ctx.send("Server is running, can't make a backup")
+                else:
+                    raise NameError
+            except NameError:
+                file_quantity = backup_status()
+                if(file_quantity == 'cached'):
+                    subprocess.Popen('./backup_abi_server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                    await ctx.send("Making backup...")
+                else:
+                    await ctx.send(f"Another backup is running; wait some time to start a backup.\nFile quantity = {file_quantity}")
+        elif(id == int(guilds[2])):
+            try:
+                if(server2.poll() == None):
+                    await ctx.send("Server is running, can't make a backup")
+                else:
+                    raise NameError
+            except NameError:
+                file_quantity = backup_status()
+                if(file_quantity == 'cached'):
+                    subprocess.Popen('./backup_ms_server.sh', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                    await ctx.send("Making backup...")
+                else:
+                    await ctx.send(f"Another backup is running; wait some time to start a backup.\nFile quantity = {file_quantity}")
+        else:
+            await ctx.send("This isn't allowed yet")
 
 
 def backup_status():
@@ -159,6 +211,48 @@ def backup_status():
         return file_name
     else:
         return file_quantity
+
+
+async def run_abi_minecraft_server(ctx):
+    file_quantity = backup_status()
+    if(file_quantity == 'cached'):
+        global server
+        try:
+            if(server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
+                await ctx.send("Server is already running")
+            else:   #If the server was stopped once, "server.returncode" has a value of "0".
+                raise NameError
+        except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
+            server = subprocess.Popen(os.environ['ABI_SERVER_STARTER_PATH'], stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+            time.sleep(1)
+            if(server.poll() == None):
+                await bot.change_presence(activity=discord.Game(name=os.environ['PRESENCE']))
+                await ctx.send("Server started")
+            else:
+                await ctx.send("Server starting failed")
+    else:
+        await ctx.send(f"A backup is running, and the server can't start; wait some time to start the server.\nFile quantity = {file_quantity}")
+
+
+async def run_ms_minecraft_server(ctx):
+    file_quantity = backup_status()
+    if(file_quantity == 'cached'):
+        global server2
+        try:
+            if(server2.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
+                await ctx.send("Server is already running")
+            else:   #If the server was stopped once, "server.returncode" has a value of "0".
+                raise NameError
+        except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
+            server2 = subprocess.Popen(os.environ['MS_SERVER_STARTER_PATH'], stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+            time.sleep(1)
+            if(server2.poll() == None):
+                await bot.change_presence(activity=discord.Game(name=os.environ['PRESENCE']))
+                await ctx.send("Server started")
+            else:
+                await ctx.send("Server starting failed")
+    else:
+        await ctx.send(f"A backup is running, and the server can't start; wait some time to start the server.\nFile quantity = {file_quantity}")
 
 
 bot.add_cog(General(bot))
