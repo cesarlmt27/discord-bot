@@ -89,6 +89,22 @@ class General(commands.Cog):
         embed.add_field(name="Server created at", value=f"{ctx.guild.created_at}")
         await ctx.send(embed=embed)
 
+    @commands.command(help="Shutdown server (Diosito)")
+    @commands.guild_only()
+    async def shutdown(self, ctx):
+        try:
+            if(server.poll() == None or server2.poll() == None):
+                await ctx.send("Server is running, can't shutdown")
+            else:
+                raise NameError
+        except NameError:
+            file_quantity = backup_status()
+            if(file_quantity == 'cached'):
+                await ctx.send("Bye :)")
+                subprocess.Popen('sudo shutdown now', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+            else:
+                await ctx.send(f"A backup is running; wait some time to shutdown.\nFile quantity = {file_quantity}")
+
 
 
 class Server(commands.Cog):
