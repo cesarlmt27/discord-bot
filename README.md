@@ -13,10 +13,21 @@ This Discord bot is written with the Discord.py package and implements Python's 
 
 ## Most notable features
 
-Since the purpose of the code is to use it on my PC with Ubuntu Server, it has features like the shutdown of the PC.
-
-#### Minecraft server related features:
+### Minecraft server related features:
 - Start and stop the Minecraft servers.
 - Backup of the Minecraft servers files in a set pCloud account.
+- Check if Minecraft server is running.
 - Check if there is a pCloud backup running.
 - Send commands to the Minecraft servers.
+
+### Various
+- Command existence message.
+- Private messages comment.
+- Only Discord guilds messages allowance.
+- Since the purpose of the code is to use it on my PC with Ubuntu Server, it has features like the shutdown of the PC.
+- Avoidance of running a Minecraft server when another one is running.
+- pCloud console client backup check by cached files quantity.
+- Avoidance of running a Minecraft server when a pCloud backup is running.
+- Avoidance of running a Minecraft server backup when a pCloud backup is running.
+- Check proper channel/thread use of Discord bot command.
+- Check the use of the proper channel/thread of the Discord bot command (only for one guild).
