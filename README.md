@@ -13,7 +13,7 @@ This Discord bot is written with the Discord.py package and implements Python's 
 
 ## Most notable features
 
-### Minecraft server related features:
+### Minecraft server related features
 - Start and stop the Minecraft servers.
 - Backup of the Minecraft servers files in a set pCloud account.
 - Check if Minecraft server is running.
