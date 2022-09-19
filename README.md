@@ -3,6 +3,7 @@
 ## Purpose
 
 The main purpose of this bot was open and close dedicated Minecraft servers; however, was also implemented a Minecraft server backup and a few Minecraft servers' not-related basics features.
+
 The idea about this Discord bot came because I needed to start the Minecraft servers manually when my friends wanted to play; for this and other reasons, I decided to host it on a PC with Ubuntu Server since is less resource-consuming (only in this way I have used the code).
 
 
