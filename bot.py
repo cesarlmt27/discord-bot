@@ -51,6 +51,7 @@ async def on_message(message):
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.streaming = False
 
     @commands.command(help="Test if bot responds.")
     @commands.guild_only()
@@ -73,6 +74,19 @@ class General(commands.Cog):
             else:
                 await ctx.send(f"A backup is running; wait some time to shutdown.\nRemaining files = {file_quantity}")
 
+    @commands.command(help="Start/stop streaming app.")
+    @commands.guild_only()
+    async def stream(self, ctx):
+        if(self.streaming == False):
+            subprocess.run('pulseaudio --daemonize',  capture_output=True, shell=True, text=True)
+            subprocess.Popen('startx', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+            self.streaming = True
+            await ctx.send('Starting streaming')
+        else:
+            subprocess.run('killall xinit',  capture_output=True, shell=True, text=True)
+            self.streaming = False
+            await ctx.send("Stopping streaming")
+
 
 
 #Cog: Server
@@ -93,11 +107,11 @@ class Server(commands.Cog, name='Minecraft server'):
                     raise NameError
             except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
                 if(channel_id == ms_je_bot):
-                    asyncio.create_task(start_minecraft_server(ctx, ms_bss_sp, "Vanilla server started", "Minecraft Java Edition", channel_id))
+                    asyncio.create_task(start_minecraft_server(ctx, ms_bss_sp, "Starting vanilla server", "Minecraft Java Edition", channel_id))
                 elif(channel_id == ms_dbc_bot):
-                    asyncio.create_task(start_minecraft_server(ctx, ms_dbc_sp, "DBC server started", "Dragon Block C", channel_id))
+                    asyncio.create_task(start_minecraft_server(ctx, ms_dbc_sp, "Starting DBC server", "Dragon Block C", channel_id))
                 elif(channel_id == abi_mse_bot):
-                    asyncio.create_task(start_minecraft_server(ctx, abi_sp, "Vanilla server started", "Minecraft Java Edition", channel_id))
+                    asyncio.create_task(start_minecraft_server(ctx, abi_sp, "Starting vanilla server", "Minecraft Java Edition", channel_id))
                 else:
                     await ctx.send("Use this command in the proper channel/thread")
         else:
