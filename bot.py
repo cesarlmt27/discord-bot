@@ -78,7 +78,6 @@ class General(commands.Cog):
     @commands.guild_only()
     async def stream(self, ctx):
         if(self.streaming == False):
-            subprocess.run('pulseaudio --daemonize',  capture_output=True, shell=True, text=True)
             subprocess.Popen('startx', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
             self.streaming = True
             await ctx.send('Starting streaming')
