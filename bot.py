@@ -58,7 +58,7 @@ class General(commands.Cog):
     async def ping(self, ctx):
         await ctx.send('pong')
 
-    @commands.command(help="Shutdown server (Diosito).")
+    @commands.command(help="Shutdown bot.")
     @commands.guild_only()
     async def shutdown(self, ctx):
         try:
@@ -150,7 +150,7 @@ class Server(commands.Cog, name='Minecraft server'):
     async def backup(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if(channel_id == ms_je_bot):
-            asyncio.create_task(make_backup(ctx, './shell-scripts/make-backup/backup_ms_bss_server.sh', "Making a backup of the Vanilla server..."))
+            asyncio.create_task(make_backup(ctx, './shell-scripts/make-backup/backup_ms_bss_server.sh', "Making a backup of the vanilla server..."))
         elif(channel_id == ms_dbc_bot):
             asyncio.create_task(make_backup(ctx, './shell-scripts/make-backup/backup_ms_dbc_server.sh', "Making a backup of the DBC server..."))
         elif(channel_id == abi_mse_bot):
