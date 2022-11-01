@@ -1,4 +1,4 @@
-# Discord bot for Minecraft servers' control.
+# Discord bot for Minecraft servers' control
 > Python implementation of a Discord bot to control your Minecraft servers, using the subprocess module to execute bash commands in a Linux PC (only tested in Ubuntu Server).
 
 
