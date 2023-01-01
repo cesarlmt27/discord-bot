@@ -92,6 +92,11 @@ class General(commands.Cog):
 class Server(commands.Cog, name='Minecraft server'):
     def __init__(self, bot):
         self.bot = bot
+        self.servers_param = {
+            ms_je_bot : [ms_bss_sp, "Starting vanilla server", "Minecraft Java Edition", "./shell-scripts/make-backup/backup_ms_bss_server.sh", "Making a backup of the vanilla server...", "./shell-scripts/latest-backup-info/ms_bss_server.sh"],
+            ms_dbc_bot : [ms_dbc_sp, "Starting DBC server", "Dragon Block C", "./shell-scripts/make-backup/backup_ms_dbc_server.sh", "Making a backup of the DBC server...", "./shell-scripts/latest-backup-info/ms_dbc_server.sh"],
+            abi_mse_bot : [abi_sp, "Starting vanilla server", "Minecraft Java Edition", "./shell-scripts/make-backup/backup_abi_server.sh", "Making a backup of the server...", "./shell-scripts/latest-backup-info/abi_server.sh"]
+        }
 
     @commands.command(help="Run Minecraft server.")
     @commands.guild_only()
@@ -104,13 +109,10 @@ class Server(commands.Cog, name='Minecraft server'):
                     await ctx.send("The server is already running, or another server is running")
                 else:   #If the server was stopped once, "server.returncode" has a value of "0".
                     raise NameError
-            except NameError:   #When trying to start the server for the first time, the code doesn't have a "server" variable defined; this produces the "NameError" exception.
-                if(channel_id == ms_je_bot):
-                    asyncio.create_task(start_minecraft_server(ctx, ms_bss_sp, "Starting vanilla server", "Minecraft Java Edition", channel_id))
-                elif(channel_id == ms_dbc_bot):
-                    asyncio.create_task(start_minecraft_server(ctx, ms_dbc_sp, "Starting DBC server", "Dragon Block C", channel_id))
-                elif(channel_id == abi_mse_bot):
-                    asyncio.create_task(start_minecraft_server(ctx, abi_sp, "Starting vanilla server", "Minecraft Java Edition", channel_id))
+            except NameError:   #When trying to start the server for the first time, the code doesn't have a global "server" variable defined; this produces the "NameError" exception.
+                if channel_id in self.servers_param:
+                    param_list = self.servers_param[channel_id]
+                    asyncio.create_task(start_minecraft_server(ctx, param_list[0], param_list[1], param_list[2], channel_id))
                 else:
                     await ctx.send("Use this command in the proper channel/thread")
         else:
@@ -149,12 +151,9 @@ class Server(commands.Cog, name='Minecraft server'):
     @commands.guild_only()
     async def backup(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
-        if(channel_id == ms_je_bot):
-            asyncio.create_task(make_backup(ctx, './shell-scripts/make-backup/backup_ms_bss_server.sh', "Making a backup of the vanilla server..."))
-        elif(channel_id == ms_dbc_bot):
-            asyncio.create_task(make_backup(ctx, './shell-scripts/make-backup/backup_ms_dbc_server.sh', "Making a backup of the DBC server..."))
-        elif(channel_id == abi_mse_bot):
-            asyncio.create_task(make_backup(ctx, './shell-scripts/make-backup/backup_abi_server.sh', "Making a backup of the server..."))
+        if channel_id in self.servers_param:
+            param_list = self.servers_param[channel_id]
+            asyncio.create_task(make_backup(ctx, param_list[3], param_list[4]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
 
@@ -162,12 +161,9 @@ class Server(commands.Cog, name='Minecraft server'):
     @commands.guild_only()
     async def latestb(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
-        if(channel_id == ms_je_bot):
-            asyncio.create_task(latest_backup_info(ctx, './shell-scripts/latest-backup-info/ms_bss_server.sh'))
-        elif(channel_id == ms_dbc_bot):
-            asyncio.create_task(latest_backup_info(ctx, './shell-scripts/latest-backup-info/ms_dbc_server.sh'))
-        elif(channel_id == abi_mse_bot):
-            asyncio.create_task(latest_backup_info(ctx, './shell-scripts/latest-backup-info/abi_server.sh'))
+        if channel_id in self.servers_param:
+            param_list = self.servers_param[channel_id]
+            asyncio.create_task(latest_backup_info(ctx, param_list[5]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
 
