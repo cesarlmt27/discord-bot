@@ -95,7 +95,8 @@ class Server(commands.Cog, name='Minecraft server'):
         self.servers_param = {
             ms_je_bot : [ms_bss_sp, "Starting vanilla server", "Minecraft Java Edition", "./shell-scripts/make-backup/backup_ms_bss_server.sh", "Making a backup of the vanilla server...", "./shell-scripts/latest-backup-info/ms_bss_server.sh"],
             ms_dbc_bot : [ms_dbc_sp, "Starting DBC server", "Dragon Block C", "./shell-scripts/make-backup/backup_ms_dbc_server.sh", "Making a backup of the DBC server...", "./shell-scripts/latest-backup-info/ms_dbc_server.sh"],
-            abi_mse_bot : [abi_sp, "Starting vanilla server", "Minecraft Java Edition", "./shell-scripts/make-backup/backup_abi_server.sh", "Making a backup of the server...", "./shell-scripts/latest-backup-info/abi_server.sh"]
+            abi_mse_bot : [abi_sp, "Starting vanilla server", "Minecraft Java Edition", "./shell-scripts/make-backup/backup_abi_server.sh", "Making a backup of the server...", "./shell-scripts/latest-backup-info/abi_server.sh"],
+            testing_bot : [testing_sp, "Starting vanilla server", "Minecraft testing server", "./shell-scripts/make-backup/backup_testing_server.sh", "Making a backup of the server...", "./shell-scripts/latest-backup-info/testing_server.sh"]
         }
 
     @commands.command(help="Run Minecraft server.")
