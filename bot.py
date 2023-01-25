@@ -21,29 +21,11 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.NoPrivateMessage):
         await ctx.send("Don't send private messages")
         raise error
+    elif isinstance(error, commands.NotOwner):
+        await ctx.send("You don't have permission to do this")
+        raise error
     else:
         raise error
-
-@bot.event
-async def on_message(message):
-    msg = message.content
-    if(msg.startswith("server:") and message.author.id == me):
-        msg = msg.replace("server:", "").strip()
-        try:
-            if(server.poll() == None):
-                server.stdin.write(msg + "\n")
-                server.stdin.flush()
-                if(msg == "stop"):
-                    await bot.change_presence(activity=None)
-                    await message.channel.send("Server stopped. Remember to make a backup")
-                await message.channel.send("Command received")
-            else:
-                raise NameError
-        except NameError:
-            await message.channel.send("Server is closed")
-    elif(msg.startswith("server:") and message.author.id != me):
-        await message.channel.send("You don't have permission to do this")
-    await bot.process_commands(message)
 
 
 
@@ -58,9 +40,9 @@ class General(commands.Cog):
     async def ping(self, ctx):
         await ctx.send('pong')
 
-    @commands.command(help="Shutdown bot.")
+    @commands.command(help="Shutdown or reboot/restart bot.")
     @commands.guild_only()
-    async def shutdown(self, ctx):
+    async def power(self, ctx, state):
         try:
             if(server.poll() == None):
                 await ctx.send("A server is running, can't shutdown")
@@ -69,10 +51,16 @@ class General(commands.Cog):
         except NameError:
             file_quantity = backup_status()
             if(file_quantity == 'cached'):
-                await ctx.send("Bye :)")
-                subprocess.Popen('sudo shutdown now', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                if(state == "shutdown"):
+                    await ctx.send("Shutting down...")
+                    subprocess.Popen('sudo shutdown now', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                elif(state == "reboot" or state == "restart"):
+                    await ctx.send("Rebooting...")
+                    subprocess.Popen('sudo reboot', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                else:
+                    await ctx.send("Invalid power state")
             else:
-                await ctx.send(f"A backup is running; wait some time to shutdown.\nRemaining files = {file_quantity}")
+                await ctx.send(f"A backup is running; wait some time to shutdown or reboot/restart.\nRemaining files = {file_quantity}")
 
     @commands.command(help="Start/stop streaming app.")
     @commands.guild_only()
@@ -85,6 +73,29 @@ class General(commands.Cog):
             subprocess.run('killall xinit',  capture_output=True, shell=True, text=True)
             self.streaming = False
             await ctx.send("Stopping streaming")
+
+
+
+#Cog: Admin
+class Admin(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command(help="Send command to running Minecraft server.")
+    @commands.is_owner()
+    async def server(self, ctx, msg):
+        try:
+            if(server.poll() == None):
+                server.stdin.write(msg + "\n")
+                server.stdin.flush()
+                if(msg == "stop"):
+                    await bot.change_presence(activity=None)
+                    await ctx.send("Server stopped. Remember to make a backup")
+                await ctx.send("Command received")
+            else:
+                raise NameError
+        except NameError:
+            await ctx.send("Server is closed")
 
 
 
@@ -218,6 +229,7 @@ async def latest_backup_info(ctx, shell_script):
 async def main():
     async with bot:
         await bot.add_cog(General(bot))
+        await bot.add_cog(Admin(bot))
         await bot.add_cog(Server(bot))
         await bot.start(token)
 
