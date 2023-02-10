@@ -44,12 +44,9 @@ class General(commands.Cog):
     @commands.command(help="Shutdown or reboot/restart bot.")
     @commands.guild_only()
     async def power(self, ctx, state):
-        try:
-            if(gv.server.poll() == None):
-                await ctx.send("A server is running, can't shutdown")
-            else:
-                raise NameError
-        except NameError:
+        if(gv.server.poll() == None):
+            await ctx.send("A server is running, can't shutdown")
+        else:
             file_quantity = f.backup_status()
             if(file_quantity == 'cached'):
                 if(state == "shutdown"):
@@ -62,6 +59,7 @@ class General(commands.Cog):
                     await ctx.send("Invalid power state")
             else:
                 await ctx.send(f"A backup is running; wait some time to shutdown or reboot/restart.\nRemaining files = {file_quantity}")
+            
 
     @commands.command(help="Start/stop streaming app.")
     @commands.guild_only()
@@ -85,18 +83,16 @@ class Admin(commands.Cog):
     @commands.command(help="Send command to running Minecraft server.")
     @commands.is_owner()
     async def server(self, ctx, msg):
-        try:
-            if(gv.server.poll() == None):
-                gv.server.stdin.write(msg + "\n")
-                gv.server.stdin.flush()
-                if(msg == "stop"):
-                    await bot.change_presence(activity=None)
-                    await ctx.send("Server stopped. Remember to make a backup")
-                await ctx.send("Command received")
-            else:
-                raise NameError
-        except NameError:
+        if(gv.server.poll() == None):
+            gv.server.stdin.write(msg + "\n")
+            gv.server.stdin.flush()
+            if(msg == "stop"):
+                await bot.change_presence(activity=None)
+                await ctx.send("Server stopped. Remember to make a backup")
+            await ctx.send("Command received")
+        else:
             await ctx.send("Server is closed")
+            
 
 
 
@@ -117,17 +113,14 @@ class Server(commands.Cog, name='Minecraft server'):
         file_quantity = f.backup_status()
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if(file_quantity == 'cached'):
-            try:
                 if(gv.server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
                     await ctx.send("The server is already running, or another server is running")
                 else:   #If the server was stopped once, "server.returncode" has a value of "0".
-                    raise NameError
-            except NameError:   #When trying to start the server for the first time, the code doesn't have a global "server" variable defined; this produces the "NameError" exception.
-                if channel_id in self.servers_param:
-                    param_list = self.servers_param[channel_id]
-                    asyncio.create_task(f.start_minecraft_server(ctx, self.bot, param_list[0], param_list[1], param_list[2], channel_id))
-                else:
-                    await ctx.send("Use this command in the proper channel/thread")
+                    if channel_id in self.servers_param:
+                        param_list = self.servers_param[channel_id]
+                        asyncio.create_task(f.start_minecraft_server(ctx, self.bot, param_list[0], param_list[1], param_list[2], channel_id))
+                    else:
+                        await ctx.send("Use this command in the proper channel/thread")
         else:
             await ctx.send(f"A backup is running, and the server can't start; wait some time to start the server.\nRemaining files = {file_quantity}")
 
@@ -135,30 +128,26 @@ class Server(commands.Cog, name='Minecraft server'):
     @commands.guild_only()
     async def stop(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
-        try:
-            if(gv.server.poll() == None and gv.started_in == channel_id):
-                gv.server.communicate(input='stop', timeout=20)
-                await bot.change_presence(activity=None)
-                await ctx.send("Server stopped. Remember to make a backup")
-            else:
-                raise NameError
-        except NameError:
+        if(gv.server.poll() == None and gv.started_in == channel_id):
+            gv.server.communicate(input='stop', timeout=20)
+            await bot.change_presence(activity=None)
+            await ctx.send("Server stopped. Remember to make a backup")
+        else:
             await ctx.send("This server isn't running, or you didn't use the command in a proper channel/thread")
+            
 
     @commands.command(help="Check if a server and a backup are running.")
     @commands.guild_only()
     async def status(self, ctx):
-        try:
-            if(gv.server.poll() == None):
-                await ctx.send("A Minecraft server is running")
-            else:
-                raise NameError
-        except NameError:
+        if(gv.server.poll() == None):
+            await ctx.send("A Minecraft server is running")
+        else:
             file_quantity = f.backup_status()
             if(file_quantity == 'cached'):
                 await ctx.send("Server is closed, and there isn't a backup running")
             else:
                 await ctx.send(f"Server is closed, and there is a backup running.\nRemaining files = {file_quantity}")
+            
 
     @commands.command(help="Make a backup of a Minecraft server.")
     @commands.guild_only()
