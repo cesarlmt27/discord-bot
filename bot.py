@@ -1,8 +1,9 @@
+import global_vars as gv
+import functions as f
 import discord
 from discord.ext import commands
 from constant_values import *   #File to store guilds IDs, channels/threads IDs, my ID, and other data.
 import subprocess
-import time
 import asyncio
 
 intents = discord.Intents.all()
@@ -44,12 +45,12 @@ class General(commands.Cog):
     @commands.guild_only()
     async def power(self, ctx, state):
         try:
-            if(server.poll() == None):
+            if(gv.server.poll() == None):
                 await ctx.send("A server is running, can't shutdown")
             else:
                 raise NameError
         except NameError:
-            file_quantity = backup_status()
+            file_quantity = f.backup_status()
             if(file_quantity == 'cached'):
                 if(state == "shutdown"):
                     await ctx.send("Shutting down...")
@@ -85,9 +86,9 @@ class Admin(commands.Cog):
     @commands.is_owner()
     async def server(self, ctx, msg):
         try:
-            if(server.poll() == None):
-                server.stdin.write(msg + "\n")
-                server.stdin.flush()
+            if(gv.server.poll() == None):
+                gv.server.stdin.write(msg + "\n")
+                gv.server.stdin.flush()
                 if(msg == "stop"):
                     await bot.change_presence(activity=None)
                     await ctx.send("Server stopped. Remember to make a backup")
@@ -113,18 +114,18 @@ class Server(commands.Cog, name='Minecraft server'):
     @commands.command(help="Run Minecraft server.")
     @commands.guild_only()
     async def run(self, ctx):
-        file_quantity = backup_status()
+        file_quantity = f.backup_status()
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if(file_quantity == 'cached'):
             try:
-                if(server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
+                if(gv.server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
                     await ctx.send("The server is already running, or another server is running")
                 else:   #If the server was stopped once, "server.returncode" has a value of "0".
                     raise NameError
             except NameError:   #When trying to start the server for the first time, the code doesn't have a global "server" variable defined; this produces the "NameError" exception.
                 if channel_id in self.servers_param:
                     param_list = self.servers_param[channel_id]
-                    asyncio.create_task(start_minecraft_server(ctx, param_list[0], param_list[1], param_list[2], channel_id))
+                    asyncio.create_task(f.start_minecraft_server(ctx, self.bot, param_list[0], param_list[1], param_list[2], channel_id))
                 else:
                     await ctx.send("Use this command in the proper channel/thread")
         else:
@@ -135,8 +136,8 @@ class Server(commands.Cog, name='Minecraft server'):
     async def stop(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         try:
-            if(server.poll() == None and started_in == channel_id):
-                server.communicate(input='stop', timeout=20)
+            if(gv.server.poll() == None and gv.started_in == channel_id):
+                gv.server.communicate(input='stop', timeout=20)
                 await bot.change_presence(activity=None)
                 await ctx.send("Server stopped. Remember to make a backup")
             else:
@@ -148,12 +149,12 @@ class Server(commands.Cog, name='Minecraft server'):
     @commands.guild_only()
     async def status(self, ctx):
         try:
-            if(server.poll() == None):
+            if(gv.server.poll() == None):
                 await ctx.send("A Minecraft server is running")
             else:
                 raise NameError
         except NameError:
-            file_quantity = backup_status()
+            file_quantity = f.backup_status()
             if(file_quantity == 'cached'):
                 await ctx.send("Server is closed, and there isn't a backup running")
             else:
@@ -165,7 +166,7 @@ class Server(commands.Cog, name='Minecraft server'):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if channel_id in self.servers_param:
             param_list = self.servers_param[channel_id]
-            asyncio.create_task(make_backup(ctx, param_list[3], param_list[4]))
+            asyncio.create_task(f.make_backup(ctx, param_list[3], param_list[4]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
 
@@ -175,55 +176,10 @@ class Server(commands.Cog, name='Minecraft server'):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if channel_id in self.servers_param:
             param_list = self.servers_param[channel_id]
-            asyncio.create_task(latest_backup_info(ctx, param_list[5]))
+            asyncio.create_task(f.latest_backup_info(ctx, param_list[5]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
 
-
-
-#Functions
-async def start_minecraft_server(ctx, starter, start_msg, presence, channel_id):
-    global server
-    server = subprocess.Popen(starter, stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-    time.sleep(1)
-    if(server.poll() == None):
-        await bot.change_presence(activity=discord.Game(name=presence))
-        await ctx.send(start_msg)
-        global started_in
-        started_in = channel_id
-    else:
-        await ctx.send("Server starting failed")
-
-
-def backup_status():
-    output = subprocess.run('cd ~/.pcloud/Cache && ls | wc -l',  capture_output=True, shell=True, text=True)
-    file_quantity = int(output.stdout)  #Stored quantity of files inside the folder "Cache" of ".pcloud"
-    if(file_quantity == 1):
-        output2 = subprocess.run('cd ~/.pcloud/Cache && ls',  capture_output=True, shell=True, text=True)
-        file_name = output2.stdout.strip()      #Store file name inside the folder "Cache" and remove whitespace at the beginning and the end
-        return file_name
-    else:
-        return file_quantity
-
-
-async def make_backup(ctx, backup_file, backup_msg):
-    try:
-        if(server.poll() == None):
-            await ctx.send("A server is running, can't make a backup")
-        else:
-            raise NameError
-    except NameError:
-        file_quantity = backup_status()
-        if(file_quantity == 'cached'):
-            subprocess.Popen(backup_file, stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-            await ctx.send(backup_msg)
-        else:
-            await ctx.send(f"Another backup is running; wait some time to start a backup.\nRemaining files = {file_quantity}")
-
-
-async def latest_backup_info(ctx, shell_script):
-    p = subprocess.run(shell_script, capture_output=True, shell=True, text=True)
-    await ctx.send(p.stdout)
 
 
 async def main():
