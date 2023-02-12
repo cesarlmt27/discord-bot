@@ -1,4 +1,5 @@
 constant_values.py
-shell-scripts
 __pycache__
 venv
+seed.py
+database.db
