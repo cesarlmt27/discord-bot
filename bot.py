@@ -112,7 +112,7 @@ class Admin(commands.Cog):
         channel_id = ctx.message.channel.id
 
         if(modded == "vanilla"):
-            subprocess.run(f"./shell-scripts/create_minecraft_server.sh {guild_name} {channel_name}",  stdout=subprocess.PIPE, shell=True, text=True)
+            subprocess.run(f"./shell-scripts/create_minecraft_vanilla_server.sh {guild_name} {channel_name}",  stdout=subprocess.PIPE, shell=True, text=True)
 
             params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", "Starting vanilla server",
             "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", "Making a backup of the vanilla server...",
