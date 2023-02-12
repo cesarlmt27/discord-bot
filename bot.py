@@ -5,6 +5,10 @@ from discord.ext import commands
 from constant_values import *   #File to store guilds IDs, channels/threads IDs, my ID, and other data.
 import subprocess
 import asyncio
+import sqlite3
+
+con = sqlite3.connect("database.db")
+cur = con.cursor()
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'), description='Bot for Minecraft servers.', help_command=commands.DefaultHelpCommand(no_category = 'Help'), intents = intents)
@@ -36,30 +40,34 @@ class General(commands.Cog):
         self.bot = bot
         self.streaming = False
 
+
     @commands.command(help="Test if bot responds.")
     @commands.guild_only()
     async def ping(self, ctx):
         await ctx.send('pong')
 
+
     @commands.command(help="Shutdown or reboot/restart bot.")
     @commands.guild_only()
     async def power(self, ctx, state):
         if(gv.server.poll() == None):
-            await ctx.send("A server is running, can't shutdown")
+            await ctx.send("A server is running, can't shutdown/reboot")
         else:
             file_quantity = f.backup_status()
             if(file_quantity == 'cached'):
                 if(state == "shutdown"):
                     await ctx.send("Shutting down...")
+                    con.close()
                     subprocess.Popen('sudo shutdown now', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
                 elif(state == "reboot" or state == "restart"):
                     await ctx.send("Rebooting...")
+                    con.close()
                     subprocess.Popen('sudo reboot', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
                 else:
                     await ctx.send("Invalid power state")
             else:
                 await ctx.send(f"A backup is running; wait some time to shutdown or reboot/restart.\nRemaining files = {file_quantity}")
-            
+
 
     @commands.command(help="Start/stop streaming app.")
     @commands.guild_only()
@@ -80,6 +88,7 @@ class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     @commands.command(help="Send command to running Minecraft server.")
     @commands.is_owner()
     async def server(self, ctx, msg):
@@ -92,7 +101,31 @@ class Admin(commands.Cog):
             await ctx.send("Command received")
         else:
             await ctx.send("Server is closed")
+
+
+    @commands.command(help="Create a minecraft server.")
+    @commands.is_owner()
+    async def create_minecraft(self, ctx, modded):
+        guild_name = ctx.guild.name.replace(" ","_")
+        guild_id = ctx.guild.id
+        channel_name = ctx.message.channel.parent.name
+        channel_id = ctx.message.channel.id
+
+        if(modded == "vanilla"):
+            subprocess.run(f"./shell-scripts/create_minecraft_server.sh {guild_name} {channel_name}",  stdout=subprocess.PIPE, shell=True, text=True)
+
+            params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", "Starting vanilla server",
+            "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", "Making a backup of the vanilla server...",
+            f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/latest_backup.sh")
             
+            cur.execute("INSERT INTO channel VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", params)
+            con.commit()
+
+            await ctx.send("Vanilla server at the latest version created")
+        elif(modded == "forge"):
+            await ctx.send("None")
+        else:
+            await ctx.send("Invalid argument")
 
 
 
@@ -100,29 +133,27 @@ class Admin(commands.Cog):
 class Server(commands.Cog, name='Minecraft server'):
     def __init__(self, bot):
         self.bot = bot
-        self.servers_param = {
-            ms_je_bot : [ms_bss_sp, "Starting vanilla server", "Minecraft Java Edition", "./shell-scripts/make-backup/backup_ms_bss_server.sh", "Making a backup of the vanilla server...", "./shell-scripts/latest-backup-info/ms_bss_server.sh"],
-            ms_dbc_bot : [ms_dbc_sp, "Starting DBC server", "Dragon Block C", "./shell-scripts/make-backup/backup_ms_dbc_server.sh", "Making a backup of the DBC server...", "./shell-scripts/latest-backup-info/ms_dbc_server.sh"],
-            abi_mse_bot : [abi_sp, "Starting vanilla server", "Minecraft Java Edition", "./shell-scripts/make-backup/backup_abi_server.sh", "Making a backup of the server...", "./shell-scripts/latest-backup-info/abi_server.sh"],
-            testing_bot : [testing_sp, "Starting vanilla server", "Minecraft testing server", "./shell-scripts/make-backup/backup_testing_server.sh", "Making a backup of the server...", "./shell-scripts/latest-backup-info/testing_server.sh"]
-        }
 
     @commands.command(help="Run Minecraft server.")
     @commands.guild_only()
     async def run(self, ctx):
         file_quantity = f.backup_status()
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
+
         if(file_quantity == 'cached'):
-                if(gv.server.returncode == None):  #When the server is running, "server.returncode" has a value of "None".
+                if(gv.server.poll() == None):  #When the server is running, "server.poll()" has a value of "None".
                     await ctx.send("The server is already running, or another server is running")
-                else:   #If the server was stopped once, "server.returncode" has a value of "0".
-                    if channel_id in self.servers_param:
-                        param_list = self.servers_param[channel_id]
-                        asyncio.create_task(f.start_minecraft_server(ctx, self.bot, param_list[0], param_list[1], param_list[2], channel_id))
+                else:
+                    cur.execute("SELECT server_starter_path, start_message, bot_presence FROM channel WHERE id = ?", (channel_id,))
+                    res = cur.fetchone()
+
+                    if res is not None:
+                        asyncio.create_task(f.start_minecraft_server(ctx, self.bot, res[0], res[1], res[2], channel_id))
                     else:
                         await ctx.send("Use this command in the proper channel/thread")
         else:
             await ctx.send(f"A backup is running, and the server can't start; wait some time to start the server.\nRemaining files = {file_quantity}")
+
 
     @commands.command(help="Stop Minecraft server.")
     @commands.guild_only()
@@ -134,7 +165,7 @@ class Server(commands.Cog, name='Minecraft server'):
             await ctx.send("Server stopped. Remember to make a backup")
         else:
             await ctx.send("This server isn't running, or you didn't use the command in a proper channel/thread")
-            
+
 
     @commands.command(help="Check if a server and a backup are running.")
     @commands.guild_only()
@@ -147,25 +178,32 @@ class Server(commands.Cog, name='Minecraft server'):
                 await ctx.send("Server is closed, and there isn't a backup running")
             else:
                 await ctx.send(f"Server is closed, and there is a backup running.\nRemaining files = {file_quantity}")
-            
+
 
     @commands.command(help="Make a backup of a Minecraft server.")
     @commands.guild_only()
     async def backup(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
-        if channel_id in self.servers_param:
-            param_list = self.servers_param[channel_id]
-            asyncio.create_task(f.make_backup(ctx, param_list[3], param_list[4]))
+        
+        cur.execute("SELECT backup_file_path, backup_message FROM channel WHERE id = ?", (channel_id,))
+        res = cur.fetchone()
+
+        if res is not None:
+            asyncio.create_task(f.make_backup(ctx, res[0], res[1]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
+
 
     @commands.command(help="Date and time of latest backup.")
     @commands.guild_only()
     async def latestb(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
-        if channel_id in self.servers_param:
-            param_list = self.servers_param[channel_id]
-            asyncio.create_task(f.latest_backup_info(ctx, param_list[5]))
+
+        cur.execute("SELECT lat_backup_msg_path FROM channel WHERE id = ?", (channel_id,))
+        res = cur.fetchone()
+        
+        if res is not None:
+            asyncio.create_task(f.latest_backup_info(ctx, res[0]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
 
