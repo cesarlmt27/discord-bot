@@ -27,12 +27,9 @@ def backup_status():
 
 
 async def make_backup(ctx, backup_file, backup_msg):
-    try:
-        if(gv.server.poll() == None):
-            await ctx.send("A server is running, can't make a backup")
-        else:
-            raise NameError
-    except NameError:
+    if(gv.server.poll() == None):
+        await ctx.send("A server is running, can't make a backup")
+    else:
         file_quantity = backup_status()
         if(file_quantity == 'cached'):
             subprocess.Popen(backup_file, stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
