@@ -105,27 +105,33 @@ class Admin(commands.Cog):
 
     @commands.command(help="Create a minecraft server.")
     @commands.is_owner()
-    async def create_minecraft(self, ctx, modded):
+    async def create_minecraft(self, ctx, modded, url=None):
         guild_name = ctx.guild.name.replace(" ","_")
         guild_id = ctx.guild.id
         channel_name = ctx.message.channel.parent.name
         channel_id = ctx.message.channel.id
 
-        if(modded == "vanilla"):
-            subprocess.run(f"./shell-scripts/create_minecraft_vanilla_server.sh {guild_name} {channel_name}",  stdout=subprocess.PIPE, shell=True, text=True)
+        cur.execute("SELECT id FROM channel WHERE id = ?", (channel_id,))
+        res = cur.fetchone()
 
-            params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", "Starting vanilla server",
-            "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", "Making a backup of the vanilla server...",
-            f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/latest_backup.sh")
-            
-            cur.execute("INSERT INTO channel VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", params)
-            con.commit()
+        if(res is None):
+            if(modded == "vanilla" and url is None):
+                subprocess.run(f"./shell-scripts/create_minecraft_vanilla_server.sh {guild_name} {channel_name}",  stdout=subprocess.PIPE, shell=True, text=True)
 
-            await ctx.send("Vanilla server at the latest version created")
-        elif(modded == "forge"):
-            await ctx.send("None")
+                params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", "Starting vanilla server",
+                "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", "Making a backup of the vanilla server...",
+                f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/latest_backup.sh")
+                
+                cur.execute("INSERT INTO channel VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", params)
+                con.commit()
+
+                await ctx.send("Vanilla server at the latest version created")
+            elif(modded == "forge" and url is not None):
+                await ctx.send("In development...")
+            else:
+                await ctx.send("Invalid argument")
         else:
-            await ctx.send("Invalid argument")
+            await ctx.send("This channel already has a Minecraft server")
 
 
 
@@ -147,7 +153,7 @@ class Server(commands.Cog, name='Minecraft server'):
                     cur.execute("SELECT server_starter_path, start_message, bot_presence FROM channel WHERE id = ?", (channel_id,))
                     res = cur.fetchone()
 
-                    if res is not None:
+                    if(res is not None):
                         asyncio.create_task(f.start_minecraft_server(ctx, self.bot, res[0], res[1], res[2], channel_id))
                     else:
                         await ctx.send("Use this command in the proper channel/thread")
@@ -188,7 +194,7 @@ class Server(commands.Cog, name='Minecraft server'):
         cur.execute("SELECT backup_file_path, backup_message FROM channel WHERE id = ?", (channel_id,))
         res = cur.fetchone()
 
-        if res is not None:
+        if(res is not None):
             asyncio.create_task(f.make_backup(ctx, res[0], res[1]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
@@ -202,7 +208,7 @@ class Server(commands.Cog, name='Minecraft server'):
         cur.execute("SELECT lat_backup_msg_path FROM channel WHERE id = ?", (channel_id,))
         res = cur.fetchone()
         
-        if res is not None:
+        if(res is not None):
             asyncio.create_task(f.latest_backup_info(ctx, res[0]))
         else:
             await ctx.send("Use this command in the proper channel/thread")
