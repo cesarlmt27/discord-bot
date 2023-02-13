@@ -10,7 +10,6 @@ mkdir -p ~/pCloudDrive/games-servers/minecraft-java/"$1" # Create a folder where
 cd ~/games-servers/minecraft-java/"$1"/"$2"
 
 wget https://piston-data.mojang.com/v1/objects/c9df48efed58511cdd0213c56b9013a7b5c9ac1f/server.jar  # Download from "https://www.minecraft.net/en-us/download/server" the dedicated server files
-chmod +x server.jar     # Make the previous file downloaded (server.jar) an executable
 
 java -jar server.jar    # Execute "server.jar"
 
