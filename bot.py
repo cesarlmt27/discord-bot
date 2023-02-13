@@ -127,7 +127,16 @@ class Admin(commands.Cog):
 
                 await ctx.send("Vanilla server at the latest version created")
             elif(modded == "forge" and url is not None):
-                await ctx.send("In development...")
+                subprocess.run(f"./shell-scripts/create_minecraft_forge_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
+
+                params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", "Starting forge server",
+                "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", "Making a backup of the forge server...",
+                f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/latest_backup.sh")
+                
+                cur.execute("INSERT INTO channel VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", params)
+                con.commit()
+
+                await ctx.send("Forge server created")
             else:
                 await ctx.send("Invalid argument")
         else:
@@ -166,7 +175,7 @@ class Server(commands.Cog, name='Minecraft server'):
     async def stop(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if(gv.server.poll() == None and gv.started_in == channel_id):
-            gv.server.communicate(input='stop', timeout=20)
+            gv.server.communicate(input='stop', timeout=60)
             await bot.change_presence(activity=None)
             await ctx.send("Server stopped. Remember to make a backup")
         else:
