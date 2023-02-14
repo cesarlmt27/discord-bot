@@ -143,6 +143,27 @@ class Admin(commands.Cog):
             await ctx.send("This channel already has a Minecraft server")
 
 
+    @commands.command(help="Delete a minecraft server.")
+    @commands.is_owner()
+    async def delete_minecraft(self, ctx):
+        guild_name = ctx.guild.name.replace(" ","_")
+        channel_name = ctx.message.channel.parent.name
+        channel_id = ctx.message.channel.id
+
+        cur.execute("SELECT id FROM channel WHERE id = ?", (channel_id,))
+        res = cur.fetchone()
+
+        if(res is not None):
+            subprocess.run(f"cd ~/games-servers/minecraft-java/{guild_name} && rm -r {channel_name}",  stdout=subprocess.PIPE, shell=True, text=True)
+
+            cur.execute("DELETE FROM channel WHERE id = ?", (channel_id,))
+            con.commit()
+
+            await ctx.send("Minecraft server deleted")
+        else:
+            await ctx.send("This channel doesn't have a Minecraft server")
+
+
 
 #Cog: Server
 class Server(commands.Cog, name='Minecraft server'):
@@ -175,9 +196,9 @@ class Server(commands.Cog, name='Minecraft server'):
     async def stop(self, ctx):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if(gv.server.poll() == None and gv.started_in == channel_id):
-            gv.server.communicate(input='stop', timeout=60)
-            await bot.change_presence(activity=None)
+            gv.server.communicate(input='stop')
             await ctx.send("Server stopped. Remember to make a backup")
+            await bot.change_presence(activity=None)
         else:
             await ctx.send("This server isn't running, or you didn't use the command in a proper channel/thread")
 
