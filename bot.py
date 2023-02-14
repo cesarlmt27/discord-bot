@@ -115,30 +115,24 @@ class Admin(commands.Cog):
         res = cur.fetchone()
 
         if(res is None):
-            if(modded == "vanilla" and url is None):
-                subprocess.run(f"./shell-scripts/create_minecraft_vanilla_server.sh {guild_name} {channel_name}",  stdout=subprocess.PIPE, shell=True, text=True)
+            if(modded == "forge" and url is None):
+                await ctx.send("You must type a Forge URL as an argument")
+            elif(modded == "vanilla" or modded == "forge"):
+                subprocess.run(f"./shell-scripts/create_minecraft_{modded}_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
 
-                params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", "Starting vanilla server",
-                "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", "Making a backup of the vanilla server...",
+                params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", f"Starting {modded} server",
+                "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", f"Making a backup of the {modded} server...",
                 f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/latest_backup.sh")
                 
                 cur.execute("INSERT INTO channel VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", params)
                 con.commit()
 
-                await ctx.send("Vanilla server at the latest version created")
-            elif(modded == "forge" and url is not None):
-                subprocess.run(f"./shell-scripts/create_minecraft_forge_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
-
-                params = (channel_id, guild_id, guild_name, f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/start.sh", "Starting forge server",
-                "Minecraft Java Edition", f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/backup.sh", "Making a backup of the forge server...",
-                f"~/games-servers/minecraft-java/{guild_name}/{channel_name}/latest_backup.sh")
-                
-                cur.execute("INSERT INTO channel VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", params)
-                con.commit()
-
-                await ctx.send("Forge server created")
+                if(modded == "vanilla"):
+                    await ctx.send("Vanilla server at the latest version created")
+                else:
+                    await ctx.send("Forge server created")
             else:
-                await ctx.send("Invalid argument")
+                await ctx.send("You have mistyped the command")
         else:
             await ctx.send("This channel already has a Minecraft server")
 
