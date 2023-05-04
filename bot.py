@@ -73,11 +73,11 @@ class General(commands.Cog):
     @commands.guild_only()
     async def stream(self, ctx):
         if(self.streaming == False):
-            subprocess.Popen('startx', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+            subprocess.Popen('sudo systemctl start gdm3', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
             self.streaming = True
             await ctx.send('Starting streaming')
         else:
-            subprocess.run('killall xinit',  capture_output=True, shell=True, text=True)
+            subprocess.run('sudo systemctl stop gdm3',  capture_output=True, shell=True, text=True)
             self.streaming = False
             await ctx.send("Stopping streaming")
 
