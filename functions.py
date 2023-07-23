@@ -4,7 +4,7 @@ import discord
 import time
 
 #Functions
-async def start_minecraft_server(ctx, bot, starter, start_msg, presence, channel_id):
+async def start_minecraft_server(ctx, bot, starter, presence, start_msg, channel_id):
     gv.server = subprocess.Popen(starter, stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
     time.sleep(1)
     if(gv.server.poll() == None):
@@ -38,6 +38,6 @@ async def make_backup(ctx, backup_file, backup_msg):
             await ctx.send(f"Another backup is running; wait some time to start a backup.\nRemaining files = {file_quantity}")
 
 
-async def latest_backup_info(ctx, shell_script):
-    p = subprocess.run(shell_script, capture_output=True, shell=True, text=True)
+async def latest_backup_info(ctx, latest_backup):
+    p = subprocess.run(latest_backup, capture_output=True, shell=True, text=True)
     await ctx.send(p.stdout)
