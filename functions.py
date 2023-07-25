@@ -4,15 +4,15 @@ import discord
 import time
 
 #Functions
-async def start_minecraft_server(ctx, bot, starter, presence, start_msg, channel_id):
-    gv.server = subprocess.Popen(starter, stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+async def start_minecraft_server(ctx, bot, channel_id, guild_name, channel_name, directory, game_name):
+    gv.server = subprocess.Popen(f"~/{directory}/{guild_name}/{channel_name}/start.sh", stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
     time.sleep(1)
     if(gv.server.poll() == None):
-        await bot.change_presence(activity=discord.Game(name=presence))
-        await ctx.send(start_msg)
+        await bot.change_presence(activity=discord.Game(name=game_name))
+        await ctx.send(f"Starting {game_name} server")
         gv.started_in = channel_id
     else:
-        await ctx.send("Server starting failed")
+        await ctx.send(f"{game_name} server starting failed")
 
 
 def backup_status():
@@ -26,18 +26,24 @@ def backup_status():
         return file_quantity
 
 
-async def make_backup(ctx, backup_file, backup_msg):
+async def make_backup(ctx, guild_name, channel_name, directory, game_name):
     if(gv.server.poll() == None):
         await ctx.send("A server is running, can't make a backup")
     else:
         file_quantity = backup_status()
         if(file_quantity == 'cached'):
-            subprocess.Popen(backup_file, stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-            await ctx.send(backup_msg)
+            # Compressing
+            await ctx.send(f"Compressing {game_name} server data… I won't respond to commands until finished")
+            subprocess.run(f"cd ~/{directory}/{guild_name} && tar cf - {channel_name} | 7za a -si {channel_name}.tar.7z",  capture_output=True, shell=True, text=True)
+            await ctx.send(f"{game_name} server data compressed")
+
+            # Backup in pCloud
+            subprocess.Popen(f"mv -f ~/{directory}/{guild_name}/{channel_name}.tar.7z ~/pCloudDrive/{directory}/{guild_name}", stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+            await ctx.send(f"Making a backup of the {game_name} server...")
         else:
             await ctx.send(f"Another backup is running; wait some time to start a backup.\nRemaining files = {file_quantity}")
 
 
-async def latest_backup_info(ctx, latest_backup):
-    p = subprocess.run(latest_backup, capture_output=True, shell=True, text=True)
+async def latest_backup_info(ctx, guild_name, channel_name, directory):
+    p = subprocess.run(f'date -d "@$(stat -c "%Y" ~/pCloudDrive/{directory}/{guild_name}/{channel_name}.tar.7z)" "+%A, %d %B %Y - %H:%M:%S"', capture_output=True, shell=True, text=True)
     await ctx.send(p.stdout)
