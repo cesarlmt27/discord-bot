@@ -114,34 +114,28 @@ class Admin(commands.Cog):
         channel_name = ctx.message.channel.parent.name
         channel_id = ctx.message.channel.id
 
-        cur.execute("SELECT id FROM Guild WHERE id = ?", (guild_id,))
+        cur.execute("SELECT id FROM Channel WHERE id = ?", (channel_id,))
         res = cur.fetchone()
 
         if(res is None):
-            await ctx.send("This Discord's server isn't registered")
-        else:
-            cur.execute("SELECT id FROM Channel WHERE id = ?", (channel_id,))
-            res = cur.fetchone()
+            if(modded == "forge" and url is None):
+                await ctx.send("You must type a Forge URL as an argument")
+            elif(modded == "vanilla" or modded == "forge"):
+                subprocess.run(f"./shell-scripts/create_minecraft_{modded}_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
 
-            if(res is None):
-                if(modded == "forge" and url is None):
-                    await ctx.send("You must type a Forge URL as an argument")
-                elif(modded == "vanilla" or modded == "forge"):
-                    subprocess.run(f"./shell-scripts/create_minecraft_{modded}_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
+                params = (channel_id, guild_id, 1)
+                
+                cur.execute("INSERT INTO Channel VALUES (?, ?, ?)", params)
+                con.commit()
 
-                    params = (channel_id, guild_id, 1)
-                    
-                    cur.execute("INSERT INTO Channel VALUES (?, ?, ?)", params)
-                    con.commit()
-
-                    if(modded == "vanilla"):
-                        await ctx.send("Vanilla server at the latest version created")
-                    else:
-                        await ctx.send("Forge server created")
+                if(modded == "vanilla"):
+                    await ctx.send("Vanilla server at the latest version created")
                 else:
-                    await ctx.send("You have mistyped the command")
+                    await ctx.send("Forge server created")
             else:
-                await ctx.send("This channel already has a Minecraft server")
+                await ctx.send("You have mistyped the command")
+        else:
+            await ctx.send("This channel already has a Minecraft server")
 
 
     @commands.command(help="Delete a minecraft server.")
