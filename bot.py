@@ -110,7 +110,6 @@ class Admin(commands.Cog):
     @commands.is_owner()
     async def create_minecraft(self, ctx, modded, url=None):
         guild_name = ctx.guild.name.replace(" ","_")
-        guild_id = ctx.guild.id
         channel_name = ctx.message.channel.parent.name
         channel_id = ctx.message.channel.id
 
@@ -123,9 +122,9 @@ class Admin(commands.Cog):
             elif(modded == "vanilla" or modded == "forge"):
                 subprocess.run(f"./shell-scripts/create_minecraft_{modded}_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
 
-                params = (channel_id, guild_id, 1)
+                params = (channel_id, 1)
                 
-                cur.execute("INSERT INTO Channel VALUES (?, ?, ?)", params)
+                cur.execute("INSERT INTO Channel VALUES (?, ?)", params)
                 con.commit()
 
                 if(modded == "vanilla"):
