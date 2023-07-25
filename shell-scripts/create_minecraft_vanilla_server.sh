@@ -29,10 +29,3 @@ sed -i "s/server-ip=/server-ip=$ip/" server.properties
 sed -i "s/simulation-distance=10/simulation-distance=12/" server.properties
 sed -i "s/view-distance=10/view-distance=14/" server.properties
 sed -i "s/white-list=false/white-list=true/" server.properties
-
-
-echo 'cp -rf ~/games-servers/minecraft-java/'$1'/'$2' ~/pCloudDrive/games-servers/minecraft-java/'$1'' > backup.sh   # Create a file that contains the script to make a backup
-chmod +x backup.sh     # Make the "backup.sh" file an executable
-
-echo 'date -d "@$(stat -c "%Y" ~/pCloudDrive/games-servers/minecraft-java/'$1'/'$2'/start.sh)" "+%A, %d %B %Y - %H:%M:%S"' > latest_backup.sh     # Create a file that contains the script to get the latest backup information
-chmod +x latest_backup.sh     # Make the "latest_backup.sh" file an executable
