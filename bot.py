@@ -183,13 +183,15 @@ class Server(commands.Cog, name='Games servers'):
                 if(gv.server.poll() == None):  #When the server is running, "server.poll()" has a value of "None".
                     await ctx.send("The server is already running, or another server is running")
                 else:
-                    cur.execute("""SELECT directory, presence, start_msg FROM Game
+                    cur.execute("""SELECT directory, name FROM Game
                                 JOIN Channel ON Game.id = Channel.game_id WHERE Channel.id = ?""", (channel_id,))
                     res = cur.fetchone()
 
+                    directory = res[0]
+                    game_name = res[1]
+
                     if(res is not None):
-                        starter = res[0] + f"{guild_name}/" + f"{channel_name}/" + "start.sh"
-                        asyncio.create_task(f.start_minecraft_server(ctx, self.bot, starter, res[1], res[2], channel_id))
+                        asyncio.create_task(f.start_minecraft_server(ctx, self.bot, channel_id, guild_name, channel_name, directory, game_name))
                     else:
                         await ctx.send("Use this command in the proper channel/thread")
         else:
@@ -235,13 +237,15 @@ class Server(commands.Cog, name='Games servers'):
         guild_name = ctx.guild.name.replace(" ","_")
         channel_name = ctx.message.channel.parent.name
         
-        cur.execute("""SELECT directory, backup_msg FROM Game
+        cur.execute("""SELECT directory, name FROM Game
                     JOIN Channel ON Game.id = Channel.game_id WHERE Channel.id = ?""", (channel_id,))
         res = cur.fetchone()
 
+        directory = res[0]
+        game_name = res[1]
+
         if(res is not None):
-            backup_file = res[0] + f"{guild_name}/" + f"{channel_name}/" + "backup.sh"
-            asyncio.create_task(f.make_backup(ctx, backup_file, res[1]))
+            asyncio.create_task(f.make_backup(ctx, guild_name, channel_name, directory, game_name))
         else:
             await ctx.send("Use this command in the proper channel/thread")
 
@@ -257,9 +261,10 @@ class Server(commands.Cog, name='Games servers'):
                     JOIN Channel ON Game.id = Channel.game_id WHERE Channel.id = ?""", (channel_id,))
         res = cur.fetchone()
 
+        directory = res[0]
+
         if(res is not None):
-            latest_backup = res[0] + f"{guild_name}/" + f"{channel_name}/" + "latest_backup.sh"
-            asyncio.create_task(f.latest_backup_info(ctx, latest_backup))
+            asyncio.create_task(f.latest_backup_info(ctx, guild_name, channel_name, directory))
         else:
             await ctx.send("Use this command in the proper channel/thread")
 
