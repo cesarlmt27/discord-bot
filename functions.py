@@ -45,5 +45,5 @@ async def make_backup(ctx, guild_name, channel_name, directory, game_name):
 
 
 async def latest_backup_info(ctx, guild_name, channel_name, directory):
-    p = subprocess.run(f'date -d "@$(stat -c "%Y" ~/pCloudDrive/{directory}/{guild_name}/{channel_name}.tar.7z)" "+%A, %d %B %Y - %H:%M:%S"', capture_output=True, shell=True, text=True)
+    p = subprocess.run(f'date -d "@$(stat -c "%Y" ~/pCloudDrive/{directory}/{guild_name}/{channel_name}.tar.gz)" "+%A, %d %B %Y - %H:%M:%S"', capture_output=True, shell=True, text=True)
     await ctx.send(p.stdout)
