@@ -74,20 +74,26 @@ class General(commands.Cog):
     @commands.command(help="Start/stop streaming app.")
     @commands.guild_only()
     async def stream(self, ctx):
-        cur.execute("SELECT game_id FROM Channel WHERE Channel.id = ?", (gv.started_in,))
-        res = cur.fetchone()
+        cur.execute("SELECT id FROM Channel")
+        allowed_channels = [row[0] for row in cur.fetchall()]
 
-        if(res is None or res[0] == 1):
-            if(self.streaming == False):
-                subprocess.Popen('sudo systemctl start gdm3', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-                self.streaming = True
-                await ctx.send('Starting streaming')
+        if ctx.channel.id in allowed_channels:
+            cur.execute("SELECT game_id FROM Channel WHERE Channel.id = ?", (gv.started_in,))
+            game_id = cur.fetchone()
+
+            if(game_id is None or game_id[0] == 1):
+                if(self.streaming == False):
+                    subprocess.Popen('sudo systemctl start gdm3', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                    self.streaming = True
+                    await ctx.send('Starting streaming')
+                else:
+                    subprocess.run('sudo systemctl stop gdm3',  capture_output=True, shell=True, text=True)
+                    self.streaming = False
+                    await ctx.send("Stopping streaming")
             else:
-                subprocess.run('sudo systemctl stop gdm3',  capture_output=True, shell=True, text=True)
-                self.streaming = False
-                await ctx.send("Stopping streaming")
+                await ctx.send("You aren't allowed to use this command right now")
         else:
-            await ctx.send("You aren't allowed to use this command right now")
+            await ctx.send("This command has been limited to some threads. Use this command in the proper channel/thread")
 
 
 
@@ -202,11 +208,11 @@ class Server(commands.Cog, name='Games servers'):
         channel_id = ctx.message.channel.id   #Store channel/thread ID where the message was sent.
         if(gv.server.poll() == None and gv.started_in == channel_id):
             cur.execute("SELECT game_id FROM Channel WHERE Channel.id = ?", (channel_id,))
-            res = cur.fetchone()
+            game_id = cur.fetchone()
 
-            if(res[0] == 1):
+            if(game_id[0] == 1):
                 gv.server.communicate(input='stop')
-            elif(res[0] == 2):
+            elif(game_id[0] == 2):
                 gv.server.communicate(input='quit')
 
             await ctx.send("Server stopped. Remember to make a backup")
