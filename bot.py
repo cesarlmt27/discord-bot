@@ -59,9 +59,8 @@ class General(commands.Cog):
             file_quantity = f.backup_status()
             if(file_quantity == 'cached'):
                 if(state == "shutdown"  or state == "off"):
-                    await ctx.send("Shutting down...")
-                    con.close()
-                    subprocess.Popen('sudo shutdown now', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                    await ctx.send("Hibernating...")
+                    subprocess.Popen('sudo systemctl hibernate', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
                 elif(state == "reboot" or state == "restart"):
                     await ctx.send("Rebooting...")
                     con.close()
@@ -75,14 +74,20 @@ class General(commands.Cog):
     @commands.command(help="Start/stop streaming app.")
     @commands.guild_only()
     async def stream(self, ctx):
-        if(self.streaming == False):
-            subprocess.Popen('sudo systemctl start gdm3', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-            self.streaming = True
-            await ctx.send('Starting streaming')
+        cur.execute("SELECT game_id FROM Channel WHERE Channel.id = ?", (gv.started_in,))
+        res = cur.fetchone()
+
+        if(res is None or res[0] == 1):
+            if(self.streaming == False):
+                subprocess.Popen('sudo systemctl start gdm3', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                self.streaming = True
+                await ctx.send('Starting streaming')
+            else:
+                subprocess.run('sudo systemctl stop gdm3',  capture_output=True, shell=True, text=True)
+                self.streaming = False
+                await ctx.send("Stopping streaming")
         else:
-            subprocess.run('sudo systemctl stop gdm3',  capture_output=True, shell=True, text=True)
-            self.streaming = False
-            await ctx.send("Stopping streaming")
+            await ctx.send("You aren't allowed to use this command right now")
 
 
 
@@ -205,6 +210,7 @@ class Server(commands.Cog, name='Games servers'):
                 gv.server.communicate(input='quit')
 
             await ctx.send("Server stopped. Remember to make a backup")
+            gv.started_in = None
             await bot.change_presence(activity=None)
         else:
             await ctx.send("This server isn't running, or you didn't use the command in a proper channel/thread")
