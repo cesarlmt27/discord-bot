@@ -128,7 +128,7 @@ class Admin(commands.Cog):
         res = cur.fetchone()
 
         if(url is None):
-            await ctx.send("You must type an URL as an argument")
+            await ctx.send("A URL must be given as an argument")
         else:
             if(res is None):
                 subprocess.run(f"./shell-scripts/create_minecraft_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
