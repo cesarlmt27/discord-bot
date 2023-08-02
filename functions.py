@@ -34,7 +34,7 @@ async def make_backup(ctx, guild_name, channel_name, directory, game_name):
         if(file_quantity == 'cached'):
             # Compressing
             await ctx.send(f"Compressing {game_name} server data… I won't respond to commands until finished")
-            subprocess.run(f"cd ~/{directory}/{guild_name} && tar -czvf {channel_name}.tar.gz project-zomboid",  capture_output=True, shell=True, text=True)
+            subprocess.run(f"cd ~/{directory}/{guild_name} && tar -czvf {channel_name}.tar.gz {channel_name}",  capture_output=True, shell=True, text=True)
             await ctx.send(f"{game_name} server data compressed")
 
             # Backup in pCloud
