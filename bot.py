@@ -117,9 +117,9 @@ class Admin(commands.Cog):
             await ctx.send("Server is closed")
 
 
-    @commands.command(help="Create a minecraft server.")
+    @commands.command(help="Set up a minecraft server.")
     @commands.is_owner()
-    async def create_minecraft(self, ctx, modded, url=None):
+    async def setup_minecraft(self, ctx, url=None):
         guild_name = ctx.guild.name.replace(" ","_")
         channel_name = ctx.message.channel.parent.name
         channel_id = ctx.message.channel.id
@@ -127,25 +127,27 @@ class Admin(commands.Cog):
         cur.execute("SELECT id FROM Channel WHERE id = ?", (channel_id,))
         res = cur.fetchone()
 
-        if(res is None):
-            if(modded == "forge" and url is None):
-                await ctx.send("You must type a Forge URL as an argument")
-            elif(modded == "vanilla" or modded == "forge"):
-                subprocess.run(f"./shell-scripts/create_minecraft_{modded}_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
+        if(url is None):
+            await ctx.send("You must type an URL as an argument")
+        else:
+            if(res is None):
+                subprocess.run(f"./shell-scripts/create_minecraft_server.sh {guild_name} {channel_name} {url}",  stdout=subprocess.PIPE, shell=True, text=True)
 
                 params = (channel_id, 1)
                 
                 cur.execute("INSERT INTO Channel VALUES (?, ?)", params)
                 con.commit()
 
-                if(modded == "vanilla"):
-                    await ctx.send("Vanilla server at the latest version created")
-                else:
-                    await ctx.send("Forge server created")
+                await ctx.send("Minecraft server created")
             else:
-                await ctx.send("You have mistyped the command")
-        else:
-            await ctx.send("This channel already has a Minecraft server")
+                p = subprocess.run(f"cd ~/games-servers/minecraft-java/{guild_name}/{channel_name} && rm server.jar && wget {url}",  stdout=subprocess.PIPE, shell=True, text=True)
+                
+                print(p.stderr)
+
+                if(p.stderr is None):
+                    await ctx.send("Minecraft server updated")
+                else:
+                    await ctx.send("Minecraft server couldn't be updated: this is a Forge server, or another error occurred")
 
 
     @commands.command(help="Delete a minecraft server.")
