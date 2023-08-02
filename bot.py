@@ -140,11 +140,10 @@ class Admin(commands.Cog):
 
                 await ctx.send("Minecraft server created")
             else:
+                await ctx.send("This channel already has a Minecraft server; therefore, it will be updated")
                 p = subprocess.run(f"cd ~/games-servers/minecraft-java/{guild_name}/{channel_name} && rm server.jar && wget {url}",  stdout=subprocess.PIPE, shell=True, text=True)
-                
-                print(p.stderr)
 
-                if(p.stderr is None):
+                if(p.returncode == 0):
                     await ctx.send("Minecraft server updated")
                 else:
                     await ctx.send("Minecraft server couldn't be updated: this is a Forge server, or another error occurred")
