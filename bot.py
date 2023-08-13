@@ -50,7 +50,7 @@ class General(commands.Cog):
         await ctx.send('pong')
 
 
-    @commands.command(help="Shutdown or reboot/restart bot.")
+    @commands.command(help="Shutdown, reboot/restart or boot to Windows.")
     @commands.guild_only()
     async def power(self, ctx, state):
         if(gv.server.poll() == None):
@@ -65,6 +65,10 @@ class General(commands.Cog):
                     await ctx.send("Rebooting...")
                     con.close()
                     subprocess.Popen('sudo reboot', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+                elif(state == "windows"):
+                    await ctx.send("Rebooting to Windows...")
+                    con.close()
+                    subprocess.Popen('sudo grub-reboot 2 && sudo reboot', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
                 else:
                     await ctx.send("Invalid power state")
             else:
