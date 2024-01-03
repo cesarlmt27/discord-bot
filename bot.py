@@ -67,8 +67,8 @@ class General(commands.Cog):
             await ctx.send(f"A backup is running; wait some time to shutdown or reboot/restart.\nRemaining files = {file_quantity}")
             return
         
-        if(ctx.message.author.id != gv.started_by and ctx.message.author.id != me):
-            await ctx.send("You can't do that right now")
+        if(gv.started_by is not None and (ctx.message.author.id != gv.started_by and ctx.message.author.id != me)):
+            await ctx.send("Another user started the streaming. You aren't allowed to use this command right now")
             return
 
         if(state == "shutdown"  or state == "off"):
@@ -92,10 +92,7 @@ class General(commands.Cog):
         cur.execute("SELECT game_id FROM Channel WHERE Channel.id = ?", (gv.started_in,))
         game_id = cur.fetchone()
 
-        if(game_id is not None):
-            if(game_id[0] != 1):
-                pass
-
+        if(game_id is not None and game_id[0] != 1):
             await ctx.send("You aren't allowed to use this command right now")
             return
 
@@ -106,7 +103,7 @@ class General(commands.Cog):
             await ctx.send('Starting streaming')
         else:
             if(ctx.message.author.id != gv.started_by and ctx.message.author.id != me):
-                await ctx.send("You can't do that right now")
+                await ctx.send("Another user started the streaming. You aren't allowed to use this command right now")
                 return
 
             subprocess.run('sudo systemctl stop gdm3',  capture_output=True, shell=True, text=True)
