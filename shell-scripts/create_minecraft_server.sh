@@ -20,9 +20,9 @@ then
 
     sed -i 's/false/true/' eula.txt     # Agree to the EULA inside "eula.txt"
 
-    echo '#!/bin/sh\ncd "$(dirname "$0")"\nexec java -Xms2G -Xmx4G -jar server.jar --nogui' > start.sh      # Create a "start.sh" file to execute the server
+    echo '#!/bin/sh\ncd "$(dirname "$0")"\nexec java -Xms2G -Xmx4G -jar server.jar --nogui' > run.sh      # Create a "run.sh" file to execute the server
 
-    chmod +x start.sh       # Make the "start.sh" file an executable
+    chmod +x run.sh       # Make the "run.sh" file an executable
 
     ip=$(hostname -I | xargs)   # Get the IP of the device running the code
 

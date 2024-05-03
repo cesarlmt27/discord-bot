@@ -5,7 +5,7 @@ import time
 
 #Functions
 async def start_minecraft_server(ctx, bot, channel_id, guild_name, channel_name, directory, game_name):
-    gv.server = subprocess.Popen(f"~/{directory}/{guild_name}/{channel_name}/start.sh", stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+    gv.server = subprocess.Popen(f"cd ~/{directory}/{guild_name}/{channel_name} && ./run.sh", stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
     time.sleep(1)
     if(gv.server.poll() == None):
         await bot.change_presence(activity=discord.Game(name=game_name))
