@@ -1,52 +1,62 @@
-import manager.global_obj as glo
-from manager.games import backup_status
-from private.config import me
 import subprocess
+import manager.connection as connection
 
-# Toggle streaming (start/stop)
-def toggle_stream(author_id):
-    glo.cur.execute("SELECT game_id FROM Channel WHERE Channel.id = ?", (glo.started_in,))
-    game_id = glo.cur.fetchone()
+cur, con = connection.get_connection()
 
-    if(game_id is not None and game_id[0] != 1):
-        return "You aren't allowed to use this command right now"
+def power_mode(state):
+    # Check if a backup is in progress
+    if backup_status():
+        return "A backup is in progress. Can't select a power mode"
 
-    if(glo.streaming == False):
-        subprocess.Popen('sudo systemctl start gdm3', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
-        glo.streaming = True
-        glo.started_by = author_id
-        return 'Starting streaming'
+    if state == 'shutdown':
+        command = 'sudo systemctl hibernate'
+    elif state == 'restart':
+        command = 'sudo reboot'
+        con.close()
+    elif state == 'windows':
+        command = 'sudo grub-reboot 2 && sudo reboot'
+        con.close()
     else:
-        if(author_id != glo.started_by and author_id != me):
-            return "Another user started the streaming. You aren't allowed to use this command right now"
+        print(f"Invalid state: {state}")
+        return
 
-        subprocess.run('sudo systemctl stop gdm3',  capture_output=True, shell=True, text=True)
-        glo.streaming = False
-        glo.started_by = None
-        return "Stopping streaming"
+    subprocess.run(["bash", "-c", command], check=True)
 
 
-# Power mode (shutdown, reboot/restart, windows)
-def power_mode(author_id, state):
-    if(glo.server.poll() == None):
-        return "A server is running, can't shutdown/reboot"
+def backup_status():
+    # Build the command to get the quantity of files
+    command = "cd ~/.pcloud/Cache && ls | wc -l"
+    file_quantity = int(subprocess.check_output(["bash", "-c", command]).decode().strip())
 
-    if(backup_status() == True):
-        return "A backup is running; wait some time to shutdown or reboot/restart"
+    # Build the command to get the file name
+    command = "cd ~/.pcloud/Cache && ls"
+    file_name = subprocess.check_output(["bash", "-c", command]).decode().strip()
+
+    if file_quantity == 1 and file_name == 'cached':
+        return False    # There is not a backup running
+    else:
+        return True    # There is a backup running
     
-    if(glo.started_by is not None and (author_id != glo.started_by and author_id != me)):
-        return "Another user started the streaming. You aren't allowed to use this command right now"
 
-    if(state == "shutdown"  or state == "off"):
-        subprocess.Popen('sudo systemctl hibernate', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+def latest_backup_info(channel_id, guild_name, channel_name):
+    # Get the game details from the Channel table
+    cur.execute("""
+        SELECT Game.directory_name
+        FROM Channel
+        INNER JOIN Game ON Channel.game_id = Game.id
+        WHERE Channel.id = ?
+    """, (channel_id,))
 
-    elif(state == "reboot" or state == "restart"):
-        glo.con.close()
-        subprocess.Popen('sudo reboot', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+    game = cur.fetchone()
 
-    elif(state == "windows"):
-        glo.con.close()
-        subprocess.Popen('sudo grub-reboot 2 && sudo reboot', stdout=True, text=True, shell=True, stdin=subprocess.PIPE)
+    if game is None:
+        print(f"No game found for channel id {channel_id}.")
+        return
 
-    else:
-        return "Invalid power state"
+    directory_name = game[0]
+
+    # Build the command to get the date of the latest backup
+    command = f'date -d "@$(stat -c "%Y" "$(ls -t ~/pCloudDrive/games-servers/{directory_name}/{guild_name}/{channel_name}/* | head -n 1)")" "+%A, %d %B %Y - %H:%M:%S"'
+    backup_date = subprocess.check_output(["bash", "-c", command]).decode().strip()
+
+    return backup_date
