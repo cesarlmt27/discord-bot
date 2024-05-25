@@ -41,8 +41,8 @@ class Server(commands.GroupCog, name="server"):
 
         message = output[0]
 
-        await self.bot.change_presence(activity=None)
         await interaction.followup.send(message)
+        await self.bot.change_presence(activity=None)
 
 
     @app_commands.command(name="status", description="Check a server status.")
